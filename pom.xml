@@ -4,7 +4,8 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>Info_retrieval_As2</artifactId>
+  <groupId>com.info_retrieval</groupId>
+  <artifactId>info_retrieval_as2</artifactId>
   <version>1.2</version>
 
   <name>Info_retrieval_As2</name>
