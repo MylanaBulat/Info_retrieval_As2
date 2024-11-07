@@ -1,6 +1,8 @@
+package com.info_retrieval;
+
 import java.io.*;
 import java.nio.file.Paths;
-import java.util.*;
+
 import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
@@ -13,12 +15,9 @@ import java.nio.file.Files;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.document.*;
-import org.apache.lucene.index.*;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-
-
 
 /**
  * This is a java Doc explanation of the code below
