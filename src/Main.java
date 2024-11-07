@@ -34,6 +34,7 @@ public class Main {
     private static String FILE_PATH = System.getProperty("user.dir") + File.separator + "documents";
     private static String FILE_PATH_FBIS = FILE_PATH + File.separator + "fbis";
     private static String FILE_PATH_LATIMES = FILE_PATH + File.separator + "latimes";
+    private static String FILE_PATH_FT = FILE_PATH + File.separator + "ft";
 
     // Method to parse a single FBIS file and return a Lucene document
     public static Document parseFBISDocument(Element docElement) {
@@ -44,6 +45,11 @@ public class Main {
             luceneDoc.add(new StringField("docno", docnoElement.text(), Field.Store.YES));
         }
 
+        Element dateElement = docElement.selectFirst("DATE1");
+        if (dateElement != null) {
+            luceneDoc.add(new StringField("date", dateElement.text(), Field.Store.YES));
+        }
+
         Element headerElement = docElement.selectFirst("HEADER");
         if (headerElement != null) {
             luceneDoc.add(new TextField("header", headerElement.text(), Field.Store.YES));
@@ -52,11 +58,6 @@ public class Main {
         Element textElement = docElement.selectFirst("TEXT");
         if (textElement != null) {
             luceneDoc.add(new TextField("text", textElement.text(), Field.Store.YES));
-        }
-
-        Element dateElement = docElement.selectFirst("DATE1");
-        if (dateElement != null) {
-            luceneDoc.add(new StringField("date", dateElement.text(), Field.Store.YES));
         }
         return luceneDoc;
     }
@@ -75,6 +76,11 @@ public class Main {
             luceneDoc.add(new StringField("docid", docidElement.text(), Field.Store.YES));
         }
 
+        Element dateElement = docElement.selectFirst("DATE");
+        if (dateElement != null) {
+            luceneDoc.add(new StringField("date", dateElement.text(), Field.Store.YES));
+        }
+
         Element headerElement = docElement.selectFirst("HEADLINE");
         if (headerElement != null) {
             luceneDoc.add(new TextField("HEADLINE", headerElement.text(), Field.Store.YES));
@@ -84,10 +90,30 @@ public class Main {
         if (textElement != null) {
             luceneDoc.add(new TextField("text", textElement.text(), Field.Store.YES));
         }
+        return luceneDoc;
+    }
+
+    public static Document parseFTDocument(Element docElement) {
+        Document luceneDoc = new Document();
+
+        Element docnoElement = docElement.selectFirst("DOCNO");
+        if (docnoElement != null) {
+            luceneDoc.add(new StringField("docno", docnoElement.text(), Field.Store.YES));
+        }
 
         Element dateElement = docElement.selectFirst("DATE");
         if (dateElement != null) {
             luceneDoc.add(new StringField("date", dateElement.text(), Field.Store.YES));
+        }
+
+        Element headerElement = docElement.selectFirst("HEADLINE");
+        if (headerElement != null) {
+            luceneDoc.add(new TextField("HEADLINE", headerElement.text(), Field.Store.YES));
+        }
+
+        Element textElement = docElement.selectFirst("TEXT");
+        if (textElement != null) {
+            luceneDoc.add(new TextField("text", textElement.text(), Field.Store.YES));
         }
         return luceneDoc;
     }
@@ -119,6 +145,37 @@ public class Main {
         return documentCount; // Return the total number of indexed documents
     }
 
+    // Recursive method to process all files in the FT folder, including subdirectories
+    public static int processFTFolder(IndexWriter writer, File folder) throws IOException {
+        int documentCount = 0; // Counter to track the number of indexed documents
+        // List all files and directories within the current folder
+        File[] files = folder.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    // Recursive call for subdirectories
+                    documentCount += processFTFolder(writer, file);
+                } else {
+                    System.out.println("Processing file: " + file.getName());
+                    String content = new String(Files.readAllBytes(Paths.get(file.getAbsolutePath())), "UTF-8");
+                    org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(content, "", org.jsoup.parser.Parser.xmlParser());
+
+                    Elements docs = jsoupDoc.select("DOC");
+
+                    for (Element docElement : docs) {
+                        Document luceneDoc = parseFTDocument(docElement);
+                        if (luceneDoc != null) {
+                            writer.addDocument(luceneDoc);
+                            documentCount++;
+                        }
+                    }
+                }
+            }
+        }
+
+        return documentCount; // Return the total number of indexed documents for the FT folder
+    }
+
 
     public static void main(String[] args) {
         try {
@@ -134,6 +191,8 @@ public class Main {
             int totalIndexedDocumentsFbis = processFbisLatimesFolder(writer, FILE_PATH_FBIS, true);
             // Process the LATIMES folder and index all documents
             int totalIndexedDocumentsLatimes = processFbisLatimesFolder(writer, FILE_PATH_LATIMES, false);
+            // Process the FT folder with recursive traversal of subdirectories
+            int totalIndexedDocumentsFT = processFTFolder(writer, new File(FILE_PATH_FT));
 
             writer.close();
 
@@ -141,8 +200,8 @@ public class Main {
             System.out.println("Indexing complete!");
             System.out.println("Total FBIS documents indexed: " + totalIndexedDocumentsFbis);
             System.out.println("Total LATIMES documents indexed: " + totalIndexedDocumentsLatimes);
-            System.out.println("Total documents indexed: " + (totalIndexedDocumentsFbis + totalIndexedDocumentsLatimes));
-
+            System.out.println("Total FT documents indexed: " + totalIndexedDocumentsFT);
+            System.out.println("Total documents indexed: " + (totalIndexedDocumentsFbis + totalIndexedDocumentsLatimes + totalIndexedDocumentsFT));
 
         } catch (IOException e) {
             e.printStackTrace();
