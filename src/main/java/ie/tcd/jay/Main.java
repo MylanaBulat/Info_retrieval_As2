@@ -187,43 +187,51 @@ public class Main {
 
     public static void main(String[] args) {
         try {
-            // Initialize Lucene components for indexing
+            // // Initialize Lucene components for indexing
             Directory indexDirectory = FSDirectory.open(Paths.get(INDEX_DIRECTORY));
             Analyzer analyzer = new EnglishAnalyzer();
-            IndexWriterConfig config = new IndexWriterConfig(analyzer);
-            config.setSimilarity(new BM25Similarity()); // Can change the Similarity here
+            // IndexWriterConfig config = new IndexWriterConfig(analyzer);
+            // config.setSimilarity(new BM25Similarity()); // Can change the Similarity here
 
-            IndexWriter writer = new IndexWriter(indexDirectory, config);
+            // IndexWriter writer = new IndexWriter(indexDirectory, config);
 
-            // Process the FBIS folder and index all documents, keeping track of the count
-            int totalIndexedDocumentsFbis = processFbisLatimesFolder(writer, FILE_PATH_FBIS, true);
-            // Process the LATIMES folder and index all documents
-            int totalIndexedDocumentsLatimes = processFbisLatimesFolder(writer, FILE_PATH_LATIMES, false);
-            // Process the FT folder with recursive traversal of subdirectories
-            int totalIndexedDocumentsFT = processFTFolder(writer, new File(FILE_PATH_FT));
+            // // Process the FBIS folder and index all documents, keeping track of the count
+            // int totalIndexedDocumentsFbis = processFbisLatimesFolder(writer, FILE_PATH_FBIS, true);
+            // // Process the LATIMES folder and index all documents
+            // int totalIndexedDocumentsLatimes = processFbisLatimesFolder(writer, FILE_PATH_LATIMES, false);
+            // // Process the FT folder with recursive traversal of subdirectories
+            // int totalIndexedDocumentsFT = processFTFolder(writer, new File(FILE_PATH_FT));
 
-            writer.close();
+            // writer.close();
 
-            // Print total documents indexed from both folders
-            System.out.println("Indexing complete!");
-            System.out.println("Total FBIS documents indexed: " + totalIndexedDocumentsFbis);
-            System.out.println("Total LATIMES documents indexed: " + totalIndexedDocumentsLatimes);
-            System.out.println("Total FT documents indexed: " + totalIndexedDocumentsFT);
-            System.out.println("Total documents indexed: " + (totalIndexedDocumentsFbis + totalIndexedDocumentsLatimes + totalIndexedDocumentsFT));
+            // // Print total documents indexed from both folders
+            // System.out.println("Indexing complete!");
+            // System.out.println("Total FBIS documents indexed: " + totalIndexedDocumentsFbis);
+            // System.out.println("Total LATIMES documents indexed: " + totalIndexedDocumentsLatimes);
+            // System.out.println("Total FT documents indexed: " + totalIndexedDocumentsFT);
+            // System.out.println("Total documents indexed: " + (totalIndexedDocumentsFbis + totalIndexedDocumentsLatimes + totalIndexedDocumentsFT));
             
 
 
-            DirectoryReader reader = DirectoryReader.open(indexDirectory);
-            IndexSearcher searcher = new IndexSearcher(reader);
-            searcher.setSimilarity(new BM25Similarity());
-            BooleanQuery.setMaxClauseCount(40960); 
-            // Process topics and execute queries
-            generateAndExecuteQueries(searcher, analyzer);
+            // DirectoryReader reader = DirectoryReader.open(indexDirectory);
+            // IndexSearcher searcher = new IndexSearcher(reader);
+            // searcher.setSimilarity(new BM25Similarity());
+            // BooleanQuery.setMaxClauseCount(40960); 
+            // // Process topics and execute queries
+            // generateAndExecuteQueries(searcher, analyzer);
 
-            // Close resources
-            reader.close();
-            indexDirectory.close();
-        } catch (IOException | ParseException e) {
+            // // Close resources
+            // reader.close();
+            // indexDirectory.close();
+
+
+            try {
+                TopicQueryExecutor.executeQueries(indexDirectory);
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -234,42 +242,60 @@ public class Main {
      */
     public static void generateAndExecuteQueries(IndexSearcher searcher, Analyzer analyzer) throws IOException, ParseException {
         File topicsFile = new File(TOPICS_FILE);
-        FileWriter writer = new FileWriter(OUTPUT_FILE);
-
-        org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(topicsFile, "UTF-8");
-
-        Elements topics = jsoupDoc.select("top");
         List<String> results = new ArrayList<>();
-        int i=0;
+    
+        // Parse topics file
+        org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(topicsFile, "UTF-8");
+        Elements topics = jsoupDoc.select("top");
+    
+        // Iterate through each topic
         for (Element topic : topics) {
             String topicNumber = topic.select("num").text().replace("Number:", "").trim();
-            String title = topic.select("title").text();
-            String description = topic.select("desc").text();
-            String narrative = topic.select("narr").text();
-
+            String title = topic.select("title").text().trim();
+            String description = topic.select("desc").text().trim();
+            String narrative = topic.select("narr").text().trim();
+    
             // Combine title, description, and narrative for a robust query representation
             String queryText = title + " " + description + " " + narrative;
-
+    
+            if (queryText.isEmpty()) {
+                System.out.println("Skipping empty query for topic: " + topicNumber);
+                continue;
+            }
+    
             // Create Lucene Query
             QueryParser parser = new QueryParser("text", analyzer);
-            Query query = parser.parse(QueryParser.escape(queryText));
-
-            // Execute the query and write results
+            Query query;
+            try {
+                query = parser.parse(QueryParser.escape(queryText));
+            } catch (ParseException e) {
+                System.err.println("Failed to parse query for topic " + topicNumber + ": " + e.getMessage());
+                continue;
+            }
+    
+            // Execute the query and gather results
             TopDocs topDocs = searcher.search(query, 1000);
+            System.out.println("Topic " + topicNumber + ": Retrieved " + topDocs.scoreDocs.length + " results");
+    
             for (int rank = 0; rank < topDocs.scoreDocs.length; rank++) {
                 ScoreDoc scoreDoc = topDocs.scoreDocs[rank];
                 Document doc = searcher.doc(scoreDoc.doc);
-                String docId = doc.get("docID");
+                String docId = doc.get("docno"); // Ensure correct field name
+    
                 if (docId != null) {
-                    String resultLine = String.format("%d Q0 %s %d %.4f %s", Integer.parseInt(topicNumber), docId, (rank + 1), scoreDoc.score, "BM25");
+                    String resultLine = String.format("%s Q0 %s %d %.4f %s", topicNumber, docId, (rank + 1), scoreDoc.score, "BM25");
                     results.add(resultLine);
+                } else {
+                    System.err.println("Missing docno field for a result in topic " + topicNumber);
                 }
             }
         }
-
+    
+        // Write results to the output file
         Files.write(Paths.get(OUTPUT_FILE), results);
-        //System.out.println("Query generation and result saving completed. Check " + OUTPUT_FILE);
+        System.out.println("Query generation and result saving completed. Check " + OUTPUT_FILE);
     }
+    
 
    
 }
