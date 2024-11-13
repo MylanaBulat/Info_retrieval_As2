@@ -221,8 +221,8 @@ public class Main {
             // generateAndExecuteQueries(searcher, analyzer);
 
             // // Close resources
-            // reader.close();
-            // indexDirectory.close();
+            //// reader.close();
+            //// indexDirectory.close();
 
 
             try {
@@ -231,6 +231,9 @@ public class Main {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
+            reader.close();
+            indexDirectory.close();
+            
         } catch (IOException e) {
             e.printStackTrace();
         }
