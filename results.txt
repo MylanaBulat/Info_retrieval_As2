@@ -1,0 +1,5 @@
+Indexing complete!
+Total FBIS documents indexed: 130474
+Total LATIMES documents indexed: 131899
+Total FT documents indexed: 210160
+Total documents indexed: 472533
