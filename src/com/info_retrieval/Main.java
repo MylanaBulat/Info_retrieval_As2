@@ -3,6 +3,8 @@ package com.info_retrieval;
 import java.io.*;
 import java.nio.file.Paths;
 
+import com.info_retrieval.analyzer.MCustomAnalyzer;
+import org.apache.lucene.analysis.custom.CustomAnalyzer;
 import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
@@ -180,7 +182,7 @@ public class Main {
         try {
             // Initialize Lucene components for indexing
             Directory indexDirectory = FSDirectory.open(Paths.get(INDEX_DIRECTORY));
-            Analyzer analyzer = new EnglishAnalyzer();
+            Analyzer analyzer = new MCustomAnalyzer();
             IndexWriterConfig config = new IndexWriterConfig(analyzer);
             config.setSimilarity(new BM25Similarity()); // Can change the Similarity here
 
