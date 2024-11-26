@@ -1,4 +1,4 @@
-package com.info_retrieval; // Ensure this matches your package structure
+package com.info_retrieval;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -6,7 +6,6 @@ import java.io.IOException;
 
 public class ResultWriter {
 
-    // A method to write content to a specified file
     public static void writeToFile(String filePath, String content) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
             writer.write(content);
