@@ -4,7 +4,6 @@ import java.io.*;
 import java.nio.file.Paths;
 
 import com.info_retrieval.analyzer.MCustomAnalyzer;
-import org.apache.lucene.analysis.custom.CustomAnalyzer;
 import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
@@ -15,7 +14,10 @@ import org.apache.lucene.document.TextField;
 import org.apache.lucene.document.Document;
 import java.nio.file.Files;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.en.EnglishAnalyzer;
+import com.info_retrieval.analyzer.MCustomAnalyzer; // Import your custom analyzer
+import com.info_retrieval.ResultWriter; // Import the ResultWriter class
+
+
 import org.apache.lucene.document.*;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
@@ -120,7 +122,7 @@ public class Main {
     }
 
     // Method to process all files in the FBIS folder
-    public static int processFbisLatimesFolder(IndexWriter writer, String folderPath,  boolean isFBIS) throws IOException {
+    public static int processFbisLatimesFolder(IndexWriter writer, String folderPath, boolean isFBIS) throws IOException {
         File folder = new File(folderPath);
         File[] files = folder.listFiles();
         int documentCount = 0; // Counter to track the number of indexed documents
@@ -197,17 +199,24 @@ public class Main {
 
             writer.close();
 
-            // Print total documents indexed from both folders
+            // Print total documents indexed to the console
             System.out.println("Indexing complete!");
             System.out.println("Total FBIS documents indexed: " + totalIndexedDocumentsFbis);
             System.out.println("Total LATIMES documents indexed: " + totalIndexedDocumentsLatimes);
             System.out.println("Total FT documents indexed: " + totalIndexedDocumentsFT);
             System.out.println("Total documents indexed: " + (totalIndexedDocumentsFbis + totalIndexedDocumentsLatimes + totalIndexedDocumentsFT));
 
+            // Write the same results to a file
+            String resultContent = "Indexing complete!\n"
+                    + "Total FBIS documents indexed: " + totalIndexedDocumentsFbis + "\n"
+                    + "Total LATIMES documents indexed: " + totalIndexedDocumentsLatimes + "\n"
+                    + "Total FT documents indexed: " + totalIndexedDocumentsFT + "\n"
+                    + "Total documents indexed: " + (totalIndexedDocumentsFbis + totalIndexedDocumentsLatimes + totalIndexedDocumentsFT);
+
+            ResultWriter.writeToFile("results.txt", resultContent);
+
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-
-
 }
